@@ -187,7 +187,7 @@ private static void mainLoop() {
         String password = scanner.nextLine();
         byte[] salt = generateSalt();
         SecretKeySpec key = new SecretKeySpec(salt, "AES");
-        return encrypt(password, key, Cipher.getInstance("AES"));
+        return  Base64.getEncoder().encodeToString(salt)  + ":" + encrypt(password, key, Cipher.getInstance("AES"));
     }
 
     private static boolean checkPassword() throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, IOException {
