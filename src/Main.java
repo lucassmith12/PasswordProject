@@ -8,6 +8,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Scanner;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -159,7 +160,7 @@ private static void mainLoop() {
     private static ArrayList<String> readFromFile() throws IOException {
         ArrayList<String> lines = new ArrayList<>();
         try {
-            Scanner reader = new Scanner("passwords.txt");
+            Scanner reader = new Scanner(new File("passwords.txt"));
             while (reader.hasNextLine()) {
                 lines.add(reader.nextLine());
             }
@@ -212,15 +213,18 @@ private static void mainLoop() {
     }
 
     private static byte[] getSalt() throws IOException {
-        String saltTokenPair = readFromFile().getFirst();
-        String salt = saltTokenPair.substring(0, saltTokenPair.indexOf(":"));
-        return Base64.getDecoder().decode(salt);
+        return Base64.getDecoder().decode(getAuth()[0]);
     }
 
     private static String getToken() throws IOException {
-        String saltTokenPair = readFromFile().getFirst();
-        return saltTokenPair.substring(saltTokenPair.indexOf(":") + 1);
+        return getAuth()[1];
 
+    }
+    private static String[] getAuth() throws IOException {
+        List<String> lines = readFromFile();
+        System.out.println(lines);
+        String saltTokenPair = readFromFile().get(0);
+        return saltTokenPair.split(":");
     }
 }
 
