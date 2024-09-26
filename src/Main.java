@@ -32,14 +32,24 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         try {
-            if(createFile()){
-                String encryptedPassword = getNewPassword();
+            if(createFile()) {
+                System.out.println("Existing password file not found. Creating a new one... \nDone");
+                System.out.println("Enter the password you would like to use: ");
+                String password = scanner.nextLine();
+                String encryptedPassword = getNewPassword(password);
                 writeToFile(encryptedPassword);
-            }else if(!checkPassword()){
-                System.out.println("Password is incorrect. Terminating now.");
-                System.exit(0);
+                mainLoop(password);
+            }else {
+                System.out.println("Existing password file found. Reading file...");
+                System.out.println("Enter the passcode to access your passwords:");
+                String password = scanner.nextLine();
+                if (!checkPassword(password)) {
+                    System.out.println("Password is incorrect. Terminating now.");
+                    System.exit(0);
+                }
+                mainLoop(password);
             }
-            mainLoop();
+
         }
         catch (Exception e) {
             System.out.println("An error occurred.");
@@ -49,7 +59,7 @@ public class Main {
 
     }
 
-private static void mainLoop() {
+private static void mainLoop(String passcode) {
     boolean loop = true;
     Scanner scanner = new Scanner(System.in);
     while (loop) {
@@ -66,7 +76,7 @@ private static void mainLoop() {
                 input = scanner.next();
                 try {
                     byte[] salt = getSalt();
-                    SecretKeySpec key = generateKey(input, salt);
+                    SecretKeySpec key = generateKey(passcode, salt);
                     String encryptedPass = encrypt(input, key, Cipher.getInstance("AES"));
                     writeToFile(label + ":" + encryptedPass);
                 } catch (Exception e) {
@@ -80,7 +90,7 @@ private static void mainLoop() {
                 try {
                     String encryptedPass = getEncryptedPass(label);
                     byte[] salt = getSalt();
-                    SecretKeySpec key = generateKey(encryptedPass, salt);
+                    SecretKeySpec key = generateKey(passcode, salt);
                     System.out.println(decrypt(encryptedPass, key, Cipher.getInstance("AES")));
                 } catch (Exception e) {
                     System.out.println("An error occurred.");
@@ -114,8 +124,6 @@ private static void mainLoop() {
         KeySpec spec = new PBEKeySpec(rawPassword.toCharArray(), salt, 600000, 128);
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         SecretKey sharedKey = factory.generateSecret(spec);
-
-
         byte[] encoded =  sharedKey.getEncoded();
         return new SecretKeySpec(encoded, "AES");
     }
@@ -157,8 +165,8 @@ private static void mainLoop() {
 
     private static void writeToFile(String siteAndPass) throws IOException {
         try {
-            FileWriter myWriter = new FileWriter("passwords.txt");
-            myWriter.write(siteAndPass);
+            FileWriter myWriter = new FileWriter("passwords.txt", true);
+            myWriter.write(siteAndPass + "\n");
             myWriter.close();
             System.out.println("Successfully wrote to the file.");
         } catch (IOException e) {
@@ -184,27 +192,20 @@ private static void mainLoop() {
         ArrayList<String> pairs = readFromFile();
         for(String pair: pairs){
             if(pair.contains(service)){
-                return pair;
+                return pair.split(":")[1];
             }
         }
         return "Error: service not found";
     }
 
-    private static String getNewPassword() throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Existing password file not found. Creating a new one... \nDone");
-        System.out.println("Enter the password you would like to use: ");
-        String password = scanner.nextLine();
+    private static String getNewPassword(String password) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+
         byte[] salt = generateSalt();
         SecretKeySpec key = new SecretKeySpec(salt, "AES");
         return  Base64.getEncoder().encodeToString(salt)  + ":" + encrypt(password, key, Cipher.getInstance("AES"));
     }
 
-    private static boolean checkPassword() throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, IOException {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Existing password file found. Reading file...");
-        System.out.println("Enter the passcode to access your passwords:");
-        String passcode = scanner.nextLine();
+    private static boolean checkPassword(String passcode) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, IOException {
         byte[] salt = getSalt();
         SecretKeySpec key = new SecretKeySpec(salt, "AES");
         String encryptedPass = encrypt(passcode, key, Cipher.getInstance("AES"));
@@ -231,7 +232,6 @@ private static void mainLoop() {
     }
     private static String[] getAuth() throws IOException {
         List<String> lines = readFromFile();
-        System.out.println(lines);
         String saltTokenPair = readFromFile().get(0);
         return saltTokenPair.split(":");
     }
