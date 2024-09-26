@@ -57,28 +57,37 @@ private static void mainLoop() {
         System.out.println("r : Read Password");
         System.out.println("q : Quit ");
         String input = scanner.next();
-
+        String label = "";
         switch (input) {
             case "a":
-                System.out.print("Enter choice:");
-                input = scanner.next();
                 System.out.print("\nEnter label for password:");
-                input = scanner.next();
+                label = scanner.next();
                 System.out.print("\nEnter password to store:");
                 input = scanner.next();
-                break;
-            case "r":
-                System.out.println("Enter the passcode to access your passwords:");
-                input = scanner.next();
-                if (input.equals("")) {
-                    System.out.println("Access granted");
-
-
-                } else {
-                    System.out.println("Access denied");
-                    System.exit(0);
+                try {
+                    byte[] salt = getSalt();
+                    SecretKeySpec key = generateKey(input, salt);
+                    String encryptedPass = encrypt(input, key, Cipher.getInstance("AES"));
+                    writeToFile(label + ":" + encryptedPass);
+                } catch (Exception e) {
+                    System.out.println("An error occurred.");
+                    e.printStackTrace();
                 }
                 break;
+            case "r":
+                System.out.print("\nEnter label for password:");
+                label = scanner.next();
+                try {
+                    String encryptedPass = getEncryptedPass(label);
+                    byte[] salt = getSalt();
+                    SecretKeySpec key = generateKey(encryptedPass, salt);
+                    System.out.println(decrypt(encryptedPass, key, Cipher.getInstance("AES")));
+                } catch (Exception e) {
+                    System.out.println("An error occurred.");
+                    e.printStackTrace();
+                }
+                break;
+
             case "q":
                 System.out.println("Exiting program...");
                 loop = false;
